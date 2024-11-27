@@ -1,0 +1,20 @@
+========== PROJECT RALLY-Z ==========
+
+General Description:
+    This course project seeks to replicate Namco's Rally-X as much as possible.
+    In Rally-X you drive a blue racecar through a maze with the goal of collecting
+    all the yellow flags in as little time as possible. Red racecars chase you
+    in an attempt to crash with you.
+
+Art Specs:
+    The map will be a simple maze with a brown background & green foreground. The
+    player's racecar is blue & the enemy racecars are red.
+
+Sound & Music Specs:
+    The music will be from the Rally-X Arrangement OST.
+
+Screen Desc. & UI Specs:
+    lalal
+
+Paradigm Specs:
+    lalall
