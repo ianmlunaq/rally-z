@@ -7,14 +7,28 @@ const speed = 7;
 let mykeyState=new keyState();
 let pauseState = false;
 
-let fullSpritemap = new Image();
+const fullSpritemap = new Image();
 fullSpritemap.src = "img\\rally-x-spritemap.png";
 
-let carSpritemap = new Image();
+const carSpritemap = new Image();
 carSpritemap.src = "img\\rally-x-car-spritemap.png";
 
 // Map must be 38 car units wide (1 CU = width of car sprite) & 62 CUs long
-let mapArray = [];
+const mapArray = [
+    [0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,1,1,0,0,0,0,0,0,0,0,0,0],
+    [0,1,1,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,1,0,0,0,0,0,0],
+    [0,0,0,0,0,0,1,0,0,0,0,0,0],
+    [0,0,0,0,0,0,1,0,0,0,0,0,0],
+    [0,0,0,1,1,1,1,1,1,1,0,0,0],
+    [0,0,0,0,0,0,1,0,0,0,0,0,0],
+    [0,0,0,0,0,0,1,0,0,0,0,0,0],
+    [0,0,0,0,0,0,1,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0]
+];
 
 // individual sprite from sheet is 16 X 16 px
 // sprite sheet, sprite x, sprite y, change of x, change of y, sprite width, sprite height, source location x, source location y, source width, source height, canvas width, canvas height          
@@ -32,22 +46,41 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-function draw_map() {
+function draw_border() {
     context.imageSmoothingEnabled = false;
-    for (let i = 0; i < 14; i++) {
-        context.drawImage(fullSpritemap, 0, 184, 24, 24, 0, 0 + (CU * i), CU, CU);
-        context.drawImage(fullSpritemap, 0, 184, 24, 24, 0 + (CU * i), 0, CU, CU);
-        context.drawImage(fullSpritemap, 0, 184, 24, 24, canvas.width - CU, 0 + (CU * i), CU, CU);
-        context.drawImage(fullSpritemap, 0, 184, 24, 24, 0 + (CU * i), canvas.height - CU, CU, CU);
+    for (let i = 0; i < 15; i++) {
+        context.drawImage(fullSpritemap, 0, 184, 24, 24, 0, (CU * i), CU, CU);
+        context.drawImage(fullSpritemap, 0, 184, 24, 24, (CU * i), 0, CU, CU);
+        context.drawImage(fullSpritemap, 0, 184, 24, 24, canvas.width - CU, (CU * i), CU, CU);
+        context.drawImage(fullSpritemap, 0, 184, 24, 24, (CU * i), canvas.height - CU, CU, CU);
         
     }
-    //context.drawImage(fullSpritemap, 0, 184, 24, 24, 0, 0, CU, CU);
-    //context.drawImage(fullSpritemap, 0, 184, 24, 24, 0, 0 + CU, CU, CU);
+    context.save();
+}
+
+function draw_map() {
+    let mapArrayIter = mapArray.entries();
+    for (let x of mapArrayIter) {
+        let mapArrayIterIter = x[1].entries();
+        //console.log(x);
+             
+        for (let y of mapArrayIterIter) {
+            //console.log(y);
+            
+            if (y[1] == 1) {
+                let locationX = CU * y[0];
+                let locationY = CU * x[0] + CU;
+                context.drawImage(fullSpritemap, 0, 184, 24, 24, locationX + CU, locationY, CU, CU);
+            }   
+        }
+    }
     context.save();
 }
 
 function draw() {
+    
     context.clearRect(CU, CU, canvas.width - CU * 2, canvas.height - CU * 2);
+    draw_map();
     racecar.update(mykeyState);
     //context.save();
     racecar.draw();
@@ -72,12 +105,11 @@ async function gameloop() {
 
     //draw_map();
     draw();
+
     //request next callback
     requestAnimationFrame(gameloop)
 };
 
 // Start the game
-
-fullSpritemap.onload = draw_map;
-
+draw_border();
 gameloop();
