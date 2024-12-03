@@ -1,7 +1,7 @@
 "use strict";
 
 //sprite sheet, sprite x, sprite y, change of x, change of y, sprite width, sprite height, source location x, source location y, source width, source height, canvas width, canvas height
-function sprite(spritesheet, locationX, locationY, speed, spriteWidth, spriteHeight, swidth, sheight, parentwidth, parentheight) //object definition for sprite
+function sprite(spritesheet, locationX, locationY, speed, spriteWidth, spriteHeight, swidth, sheight, carType) //object definition for sprite
 {
     this.spritesheet=spritesheet;//source image
     this.x = locationX;//location x and y
@@ -9,12 +9,8 @@ function sprite(spritesheet, locationX, locationY, speed, spriteWidth, spriteHei
     this.speed = speed;
     this.spriteWidth = spriteWidth;//sprite width and height
     this.spriteHeight = spriteHeight;
-    /* this.sx = sx;//source image location x and y
-    this.sy = sy; */
     this.cropWidth = swidth//source image height and width
     this.cropHeight = sheight;
-    this.parentwidth = parentwidth;//canvas heigth and width
-    this.parentheight = parentheight;
         
     // currentSpritesheetColumn is used to draw the racecar on the screen
     // Acceptable values are 0 - 11.75
@@ -28,7 +24,7 @@ function sprite(spritesheet, locationX, locationY, speed, spriteWidth, spriteHei
 
     // currentRow is used to select the car type from rally-x-car-spritemap.png
     // Acceptable values are 0 - 3
-    this.currentRow = 0;
+    this.currentRow = carType;
 
     this.turnSpeed = .5;
 
@@ -40,38 +36,38 @@ function sprite(spritesheet, locationX, locationY, speed, spriteWidth, spriteHei
 //functions for sprite below
 sprite.prototype = 
 {   
-    update: function(keystate) {
+    update: function(keystate, mapArray) {
         //sprite sheet is 192 X 64
         //sprite height is 16
         //sprite width is 16
         //4 rows of 12 columns in sheet
 
-        // Determines which direction the car moves in
-        if (this.currentSpritesheetColumn == 0) {
-            this.y -= this.speed;
-        } else if (this.currentSpritesheetColumn > 0 && this.currentSpritesheetColumn < 3) {
-            this.y -= this.speed;
-            this.x += this.speed;
-        } else if (this.currentSpritesheetColumn == 3) {
-            this.x += this.speed;
-        } else if (this.currentSpritesheetColumn > 3 && this.currentSpritesheetColumn < 6) {
-            this.y += this.speed;
-            this.x += this.speed;
-        } else if (this.currentSpritesheetColumn == 6) {
-            this.y += this.speed;
-        } else if (this.currentSpritesheetColumn > 6 && this.currentSpritesheetColumn < 9) {
-            this.x -= this.speed;
-            this.y += this.speed;
-        } else if (this.currentSpritesheetColumn == 9) {
-            this.x -= this.speed;
-        } else if (this.currentSpritesheetColumn > 9) {
-            this.x -= this.speed;
-            this.y -= this.speed;
-        }
-
         // Ensures car makes a complete turn
         if (!this.doneTurning) {
             keystate.value = this.oldKeystate;
+        } else {
+            // Determines which direction the car moves in
+            if (this.currentSpritesheetColumn == 0) {
+                this.y -= this.speed;
+            } else if (this.currentSpritesheetColumn > 0 && this.currentSpritesheetColumn < 3) {
+                this.y -= this.speed;
+                this.x += this.speed;
+            } else if (this.currentSpritesheetColumn == 3) {
+                this.x += this.speed;
+            } else if (this.currentSpritesheetColumn > 3 && this.currentSpritesheetColumn < 6) {
+                this.y += this.speed;
+                this.x += this.speed;
+            } else if (this.currentSpritesheetColumn == 6) {
+                this.y += this.speed;
+            } else if (this.currentSpritesheetColumn > 6 && this.currentSpritesheetColumn < 9) {
+                this.x -= this.speed;
+                this.y += this.speed;
+            } else if (this.currentSpritesheetColumn == 9) {
+                this.x -= this.speed;
+            } else if (this.currentSpritesheetColumn > 9) {
+                this.x -= this.speed;
+                this.y -= this.speed;
+            }
         }
 
         if (keystate.value > 0) {
@@ -154,71 +150,132 @@ sprite.prototype =
             }
         }
                 
-        this.checkEdges();
+        this.checkEdges(mapArray);
     },
 
-    checkEdges: function() {
-        let lowerBound = this.parentheight - this.spriteHeight * 2;
-        let upperBound = this.spriteHeight;
-        let rightBound = this.parentwidth - this.spriteWidth * 2;
-        let leftBound = this.spriteWidth;
+    checkEdges: function(mapArray) {
         let hitWall = false;
+        
+        let spriteX = Math.floor(this.x / CU);
+        let spriteY = Math.floor(this.y / CU);
 
-        // These 2 if..else if stmts prevent the player from going out of bounds
-        // The nested if stmts determine whether the player hit the wall head-on
-        // in order to change direction
-        if (this.x > rightBound) {
-            this.x = rightBound;
-            if (this.currentSpritesheetColumn == 3) {
-                hitWall = true;
-            }
-        } else if (this.x < leftBound) {
-            this.x = leftBound;
-            if (this.currentSpritesheetColumn == 9) {
-                hitWall = true;
-            }
-        }
-
-        if (this.y > lowerBound) {
-            this.y = lowerBound;
-            if (this.currentSpritesheetColumn == 6) {
-                hitWall = true;
-            }
-        } else if (this.y < upperBound) {
-            this.y = upperBound;
-            if (this.currentSpritesheetColumn == 0) {
-                hitWall = true;
-            }
-        }
-
-        if (hitWall) {
+        // This determines whether the sprite hit a wall
+        if (this.speed > 0) {
             switch (this.currentSpritesheetColumn) {
                 case 0:
-                    this.doneTurning = false;
-                    this.oldKeystate = 1;
+                    if (mapArray[spriteY][spriteX] == 1) {
+                        hitWall = true;
+                    } else if (this.x > spriteX * CU) {
+                        if (mapArray[spriteY][spriteX + 1] == 1) {
+                            hitWall = true;
+                        }
+                    }
+
+                    if (hitWall) {
+                        this.y = (spriteY + 1) * CU;
+                    }
                     break;
 
                 case 3:
-                    this.doneTurning = false;
-                    this.oldKeystate = 8;
+                    if (mapArray[spriteY][spriteX + 1] == 1) {
+                        hitWall = true;
+                    } else if (this.y > spriteY * CU) {
+                        if (mapArray[spriteY + 1][spriteX + 1] == 1) {
+                            hitWall = true;
+                        }
+                    }
+
+                    if (hitWall) {
+                        this.x = spriteX * CU;
+                    }
+                    break;
+
+                case 6:
+                    if (mapArray[spriteY + 1][spriteX] == 1) {
+                        hitWall = true;
+                    }  else if (this.x > spriteX * CU) {
+                        if (mapArray[spriteY + 1][spriteX + 1] == 1) {
+                            hitWall = true;
+                        }
+                    }
+
+                    if (hitWall) {
+                        this.y = spriteY * CU;
+                    }
+                    break;
+
+                case 9:
+                    if (mapArray[spriteY][spriteX] == 1) {
+                        hitWall = true;
+                    } else if (this.y > spriteY * CU) {
+                        if (mapArray[spriteY + 1][spriteX] == 1) {
+                            hitWall = true;
+                        }
+                    }
+
+                    if (hitWall) {
+                        this.x = (spriteX + 1) * CU;
+                    }
                     break;
             
-                case 6:
-                    this.doneTurning = false;
-                    this.oldKeystate = 2;
+                default:
                     break;
-                
+            }
+        }
+
+        //Recalculate sprite's position on the grid
+        spriteX = Math.floor(this.x / CU);
+        spriteY = Math.floor(this.y / CU);
+
+        // This determines which way the car should turn after hitting a wall
+        if (hitWall) {
+            this.doneTurning = false;
+
+            switch (this.currentSpritesheetColumn) {
+                case 0:
+                    if (mapArray[spriteY][spriteX + 1] == 0) {
+                        this.oldKeystate = 1;
+                    } else if (mapArray[spriteY][spriteX - 1] == 0) {
+                        this.oldKeystate = 2;
+                    } else {
+                        this.oldKeystate = 8;
+                    }
+                    break;
+                    
+                case 6:
+                    if (mapArray[spriteY][spriteX + 1] == 0) {
+                        this.oldKeystate = 1;
+                    } else if (mapArray[spriteY][spriteX - 1] == 0) {
+                        this.oldKeystate = 2;
+                    } else {
+                        this.oldKeystate = 4;
+                    }
+                    break;
+
+                case 3:
+                    if (mapArray[spriteY + 1][spriteX] == 0) {
+                        this.oldKeystate = 8;
+                    } else if (mapArray[spriteY - 1][spriteX] == 0) {
+                        this.oldKeystate = 4;
+                    } else {
+                        this.oldKeystate = 2;
+                    }
+                    break;
+
                 case 9:
-                    this.doneTurning = false;
-                    this.oldKeystate = 4;
+                    if (mapArray[spriteY + 1][spriteX] == 0) {
+                        this.oldKeystate = 8;
+                    } else if (mapArray[spriteY - 1][spriteX] == 0) {
+                        this.oldKeystate = 4;
+                    } else {
+                        this.oldKeystate = 1;
+                    }
                     break;
 
                 default:
                     break;
             }
         }
-
-        hitWall = false;
     },
 
     draw: function() {   
