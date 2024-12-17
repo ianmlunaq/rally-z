@@ -1,11 +1,12 @@
 "use strict";
 
 //sprite sheet, sprite x, sprite y, change of x, change of y, sprite width, sprite height, source location x, source location y, source width, source height, canvas width, canvas height
-function sprite(spritesheet, locationX, locationY, speed, spriteWidth, spriteHeight, swidth, sheight, carType) //object definition for sprite
+function enemy(spritesheet, locationX, locationY, speed, spriteWidth, spriteHeight, swidth, sheight, carType) //object definition for sprite
 {
-    this.spritesheet = spritesheet;//source image
+    this.spritesheet=spritesheet;//source image
     this.x = locationX;//location x and y
     this.y = locationY;	
+    this.speed = speed;
     this.spriteWidth = spriteWidth;//sprite width and height
     this.spriteHeight = spriteHeight;
     this.cropWidth = swidth//source image height and width
@@ -21,34 +22,58 @@ function sprite(spritesheet, locationX, locationY, speed, spriteWidth, spriteHei
     //          6 = South; 
     this.currentSpritesheetColumn = 0;
 
-    // currentRow is used to select the car type from rally-x-car-spritemap.png
+    // spritesheetRow is used to select the car type from rally-x-car-spritemap.png
     // Acceptable values are 0 - 3
-    this.currentRow = carType;
+    this.spritesheetRow = carType;
+
+    this.turnSpeed = .5;
 
     this.doneTurning = true;
     this.oldKeystate = 0;
-
-    this.turnSpeed = .5;
-    this.originalSpeed = speed;
-    this.speed = this.originalSpeed;
-    this.previousSpeed = 7;
-    this.fuel = 410;
+    this.oldSpeed = this.speed;
 };
 
 //functions for sprite below
-sprite.prototype = 
+enemy.prototype = 
 {   
-    update: function(keystate, mapArray) {
+    update: function(playerLocations, mapArray) {
         //sprite sheet is 192 X 64
         //sprite height is 16
         //sprite width is 16
         //4 rows of 12 columns in sheet
 
+        let keystate = 0;
+
+        let playerCenter = [playerLocations[0][2], playerLocations[1][2]];
+        let enemyCenter = [this.getLocationRange()[0][2], this.getLocationRange()[1][2]];
+        let distanceX = Math.abs(playerCenter[0] - enemyCenter[0]);
+        let distanceY = Math.abs(playerCenter[1] - enemyCenter[1]);
+        //console.log(distance[0], distance[1]);
+
+        if (distanceX > distanceY) {
+            if (playerCenter[0] > enemyCenter[0]) {
+                keystate = 1;
+            } else {
+                keystate = 2;
+            }
+        } else {
+            if (playerCenter[1] > enemyCenter[1]) {
+                keystate = 8;
+            } else {
+                keystate = 4;
+            }
+        }
+
+        /* if (playerCenter[0] > enemyCenter[0]) {
+            keystate = 1;
+        } else if (playerCenter[0] < enemyCenter[0]) {
+            keystate = 2;
+        } */
+
         // Ensures car makes a complete turn
         if (!this.doneTurning) {
-            keystate.value = this.oldKeystate;
+            keystate = this.oldKeystate;
         } else {
-
             // Determines which direction the car moves in
             if (this.currentSpritesheetColumn == 0) {
                 this.y -= this.speed;
@@ -73,16 +98,11 @@ sprite.prototype =
             }
         }
 
-        if (keystate.value > 0) {
-            if (this.speed > 0) {
-                this.previousSpeed = this.speed;
-            }
-
-            // Sets speed to zero to prevent car from moving while turning
-            this.speed = 0; 
+        if (keystate > 0) {
+            this.speed = 0;  
             
             // D Key
-            if (keystate.value == 1) {
+            if (keystate == 1) {
                 if (this.currentSpritesheetColumn != 3) {
                     if (this.currentSpritesheetColumn < 3) {
                         this.currentSpritesheetColumn += this.turnSpeed;
@@ -96,7 +116,7 @@ sprite.prototype =
             }
 
             //A key
-            if (keystate.value == 2) {
+            if (keystate == 2) {
                 if (this.currentSpritesheetColumn != 9) {
                     if (this.currentSpritesheetColumn < 3 || this.currentSpritesheetColumn > 9) {
                         this.currentSpritesheetColumn -= this.turnSpeed;
@@ -110,7 +130,7 @@ sprite.prototype =
             }
 
             //W key
-            if (keystate.value == 4) {
+            if (keystate == 4) {
                 if (this.currentSpritesheetColumn != 0) {
                     if (this.currentSpritesheetColumn > 6) {
                         this.currentSpritesheetColumn += this.turnSpeed;
@@ -124,7 +144,7 @@ sprite.prototype =
             }
 
             //S key
-            if (keystate.value == 8)
+            if (keystate == 8)
             { 
                 if (this.currentSpritesheetColumn != 6) {
                     if (this.currentSpritesheetColumn < 6) {
@@ -139,14 +159,11 @@ sprite.prototype =
             } 
 
             if (!this.doneTurning) {
-                this.oldKeystate = keystate.value;
+                this.oldKeystate = keystate;
             } else {
-                keystate.value = 0;
-                if (this.fuel > 0) {
-                    this.speed = this.originalSpeed;
-                } else {
-                    this.speed = this.previousSpeed;
-                }
+                keystate = 0;
+                this.speed = this.oldSpeed;
+                this.oldSpeed = this.speed;
             }
        
             if (this.currentSpritesheetColumn > 11 + this.turnSpeed) {
@@ -154,18 +171,6 @@ sprite.prototype =
             } else if (this.currentSpritesheetColumn < 0) {
                 this.currentSpritesheetColumn = 11 + this.turnSpeed;
             }
-        }
-
-        if (this.speed > 0 && this.fuel > 0) {
-            this.fuel -= 0.2;
-        }
-
-        if (this.fuel < 0 && this.speed > 0) {
-            this.speed -= 0.01;
-        }
-
-        if (this.speed < 0) {
-            this.speed = 0;
         }
                 
         this.checkEdges(mapArray);
@@ -293,23 +298,17 @@ sprite.prototype =
                 default:
                     break;
             }
-        }        
+        }
     },
 
     draw: function() {   
         context.imageSmoothingEnabled = false;
-        let cropX = Math.floor(this.currentSpritesheetColumn)*this.cropWidth;
-        let cropY = this.currentRow*this.cropHeight;
+        let cropX = Math.floor(this.currentSpritesheetColumn) * this.cropWidth;
+        let cropY = this.spritesheetRow * this.cropHeight;
         
         context.drawImage(this.spritesheet, cropX, cropY,this.cropWidth,this.cropHeight,this.x,this.y,this.spriteWidth,this.spriteHeight);       
     },
 
-    /*
-    getLocationRange() will return a 2-dimensional array: [[X1, X2, X3][Y1, Y2, Y3]]
-    X1, Y1 - Top left corner of sprite
-    X2, Y2 - Bottom right corner of sprite
-    X3, Y3 - Center of sprite
-    */
     getLocationRange: function() {
         let spriteX = [this.x, this.x + CU, this.x + (CU / 2)];
         let spriteY = [this.y, this.y + CU, this.y + (CU / 2)];
