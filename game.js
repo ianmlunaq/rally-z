@@ -7,6 +7,7 @@ const CU = 60;
 const speed = 6;
 let paused = false;
 let crashed = false;
+let smoked = false;
 const music = new sound("rally-x-area-1.webm");
 const crash_sfx = new sound("crash.webm");
 let gameStart = new Date();
@@ -27,24 +28,25 @@ const mapArray = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,1,0,0,0,0,0,0,0,0,0,0,0,1,1],
-    [1,1,0,0,0,1,1,0,0,0,0,0,0,1,1],
-    [1,1,0,0,0,1,0,0,0,0,0,0,0,1,1],
-    [1,1,0,0,1,1,0,0,1,0,0,0,0,1,1],
-    [1,1,0,0,0,0,0,1,0,0,0,0,0,1,1],
     [1,1,0,0,0,0,0,0,0,0,0,0,0,1,1],
+    [1,1,0,0,0,0,1,,1,0,0,0,0,1,1],
+    [1,1,0,0,0,1,0,0,0,1,0,0,0,1,1],
+    [1,1,0,0,1,0,0,0,0,0,1,0,0,1,1],
     [1,1,0,0,0,0,0,0,0,0,0,0,0,1,1],
-    [1,1,0,0,0,0,0,0,0,0,0,0,0,1,1],
-    [1,1,0,0,0,0,0,0,0,0,0,0,0,1,1],
+    [1,1,0,0,1,0,0,0,0,0,1,0,0,1,1],
+    [1,1,0,0,0,1,0,0,0,1,0,0,0,1,1],
+    [1,1,0,0,0,0,1,0,1,0,0,0,0,1,1],
     [1,1,0,0,0,0,0,0,0,0,0,0,0,1,1],
     [1,1,0,0,0,0,0,0,0,0,0,0,0,1,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ];
+let grid = new PF.Grid(mapArray);
 
 // individual sprite from sheet is 16 X 16 px
 // sprite sheet, sprite x, sprite y, change of x, change of y, sprite width, sprite height, source location x, source location y, source width, source height, canvas width, canvas height          
 let racecar = new sprite(carSpritemap, (canvas.width / 2) - (CU / 2), (canvas.height / 2) + CU, 6, CU, CU, 16, 16, 0);
-let enemyCar = new enemy(carSpritemap, CU * 2, CU * 2, 0, CU, CU, 16, 16, 1);
+let enemyCar = new enemy(carSpritemap, (canvas.width / 2) - (CU / 2), (canvas.height / 2) + CU * 4, 0, CU, CU, 16, 16, 1);
 
 document.addEventListener('keydown', (event) => {
     if (event.code == 'Escape') {
@@ -98,7 +100,7 @@ document.addEventListener('keydown', (event) => {
 });
 
 function crash() {
-    //music.stop();
+    music.stop();
     crash_sfx.play();
     // Use midpoint formula to determine crash location
     let crashX = (racecar.getLocationRange()[0][2] + enemyCar.getLocationRange()[0][2]) / 2;
@@ -187,7 +189,7 @@ function draw() {
     draw_map();
 
     racecar.update(mykeyState, mapArray);    
-    enemyCar.update(racecar.getLocationRange(), mapArray);
+    enemyCar.update(racecar.getLocationRange(), grid, mapArray);
 
     fuelLevelDraw(racecar.fuel);
 
@@ -201,9 +203,9 @@ function draw() {
             smokescreenArray.shift();
         }
         smokescreenArray.forEach((element) => {
-            element.update();
+            element.update(enemyCar.getLocationRange());
             element.draw();
-        });
+        });        
     }
 }
 
@@ -221,6 +223,12 @@ async function gameloop() {
     if (!crashed) {
         while (paused) {
             await sleep(100);
+        }
+
+        if (smoked) {
+            smoked = false;
+            enemyCar.x = (canvas.width / 2) - (CU / 2);
+            enemyCar.y = (canvas.height / 2) - (CU / 2);
         }
 
         let now = new Date();
@@ -241,7 +249,7 @@ async function gameloop() {
             } 
         } else {
             //racecar.speed = speed;
-            enemyCar.speed = 1;
+            enemyCar.speed = 5;
             draw();
         }  
 
@@ -254,5 +262,5 @@ async function gameloop() {
 
 // Start the game
 
-//music.play();
+music.play();
 gameloop();

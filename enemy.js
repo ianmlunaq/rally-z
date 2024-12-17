@@ -36,40 +36,16 @@ function enemy(spritesheet, locationX, locationY, speed, spriteWidth, spriteHeig
 //functions for sprite below
 enemy.prototype = 
 {   
-    update: function(playerLocations, mapArray) {
+    update: function(playerLocations, PFGrid, mapArray) {
         //sprite sheet is 192 X 64
         //sprite height is 16
         //sprite width is 16
         //4 rows of 12 columns in sheet
 
         let keystate = 0;
-
-        let playerCenter = [playerLocations[0][2], playerLocations[1][2]];
-        let enemyCenter = [this.getLocationRange()[0][2], this.getLocationRange()[1][2]];
-        let distanceX = Math.abs(playerCenter[0] - enemyCenter[0]);
-        let distanceY = Math.abs(playerCenter[1] - enemyCenter[1]);
-        //console.log(distance[0], distance[1]);
-
-        if (distanceX > distanceY) {
-            if (playerCenter[0] > enemyCenter[0]) {
-                keystate = 1;
-            } else {
-                keystate = 2;
-            }
-        } else {
-            if (playerCenter[1] > enemyCenter[1]) {
-                keystate = 8;
-            } else {
-                keystate = 4;
-            }
-        }
-
-        /* if (playerCenter[0] > enemyCenter[0]) {
-            keystate = 1;
-        } else if (playerCenter[0] < enemyCenter[0]) {
-            keystate = 2;
-        } */
-
+        let location = [];
+        
+        
         // Ensures car makes a complete turn
         if (!this.doneTurning) {
             keystate = this.oldKeystate;
@@ -96,7 +72,49 @@ enemy.prototype =
                 this.x -= this.speed;
                 this.y -= this.speed;
             }
+
+            let gridBck = PFGrid.clone();
+            let finder = new PF.AStarFinder();
+            let myX = Math.floor(this.x / CU);
+            let myY = Math.floor(this.y / CU);
+            let playerX = Math.floor(playerLocations[0][0] / CU);
+            let playerY = Math.floor(playerLocations[1][0] / CU)
+            
+            let path = finder.findPath(myX, myY, playerX, playerY, gridBck);
+            location = path;
+
+            /* if (path) {
+                console.log("Path found!");
+                console.log(path);
+                
+            } else {
+                console.log("No path found!");
+            } */
+            
+            try {
+                let distanceX = Math.abs(myX - path[1][0]);
+                let distanceY = Math.abs(myY - path[1][1]);
+
+                if (distanceX > distanceY) {
+                    if (path[1][0] > myX) {
+                        keystate = 1;
+                    } else {
+                        keystate = 2;
+                    }
+                } else {
+                    if (path[1][1] > myY) {
+                        keystate = 8;
+                    } else {
+                        keystate = 4;
+                    }
+                }
+            } catch (error) {
+                console.log(error);
+                
+            }
         }
+
+        
 
         if (keystate > 0) {
             this.speed = 0;  
@@ -173,17 +191,19 @@ enemy.prototype =
             }
         }
                 
-        this.checkEdges(mapArray);
+        this.checkEdges(mapArray, location);
     },
 
-    checkEdges: function(mapArray) {
+    checkEdges: function(mapArray, location) {
         let hitWall = false;
         
         let spriteX = Math.floor(this.x / CU);
         let spriteY = Math.floor(this.y / CU);
 
+        //console.log(spriteX, spriteY);
+
         // This determines whether the sprite hit a wall
-        if (this.speed > 0) {
+        if (true) {            
             switch (this.currentSpritesheetColumn) {
                 case 0:
                     if (mapArray[spriteY][spriteX] == 1) {
@@ -246,13 +266,15 @@ enemy.prototype =
             }
         }
 
+        //console.log(location[0]);
+
         //Recalculate sprite's position on the grid
         spriteX = Math.floor(this.x / CU);
         spriteY = Math.floor(this.y / CU);
 
         // This determines which way the car should turn after hitting a wall
         if (hitWall) {
-            this.doneTurning = false;
+            /* this.doneTurning = false;
 
             switch (this.currentSpritesheetColumn) {
                 case 0:
@@ -297,7 +319,7 @@ enemy.prototype =
 
                 default:
                     break;
-            }
+            } */
         }
     },
 
